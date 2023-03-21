@@ -20,6 +20,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.arthenica.mobileffmpeg.Config;
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
@@ -70,11 +71,16 @@ public class Etapa2 extends AppCompatActivity {
     private byte[] descryptedByte;
     private String descryptedString;
     public String texto;
+    public String ds;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_etapa2);
         cargarPreferencias();
+        if(!Python.isStarted()){
+            Python.start(new AndroidPlatform(this));
+        }
+        final Python py = Python.getInstance();
         publicKey=lectura("PublicKeyUser.txt");
         privKey=lectura("PrivateKeyUser.txt");
         StringToKey(publicKey,privKey);
@@ -86,16 +92,39 @@ public class Etapa2 extends AppCompatActivity {
 
         hola=false;
         ok=false;
+        
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                String ks=lectura("claveStoke.txt");
+                String cp=lectura("PublicKeyUser.txt");
+                String cpr=lectura("PrivateKeyUser.txt");
+                String cw = lectura("claveWifi.txt");
+
+                PyObject pyo = py.getModule("script");
+                try {
+                    PyObject obj2 = pyo.callAttr("main3", ks+"###"+"###"+cpr+"######"+cw);
+                    String str = obj2.toString();
+
+                    Log.d("TAG1", "descrypt -> " + str);
+                    escritura(str,"simbolos.txt");
+                    //Log.i(Config.TAG,str+"    este es de python");
+                    //palabra = palabra + str;
+                }catch (Exception e){
+                    Log.i(Config.TAG,"ERROR");
+                }
+                //String ds = null;
+
+
+
+
                 startActivity(new Intent(Etapa2.this,etapa3.class));
                 finish();
             }
         });
         btnIniciar.setOnClickListener(v -> {
             scanCode1();
-            Log.d("MainActivity", hola.toString()+"    hola fuera");
+            //Log.d("MainActivity", hola.toString()+"    hola fuera");
                 Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     @Override
@@ -110,7 +139,14 @@ public class Etapa2 extends AppCompatActivity {
                                 //mn=lectura("mn.txt");
                             if(ok){
                                 ok=false;
-                                scanCode2();
+                                scanCode1();
+                                Handler handler1 = new Handler();
+                                handler1.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        scanCode2();
+                                    }
+                                },4000);
                             }
                             }
                         },6000);
@@ -136,7 +172,7 @@ public class Etapa2 extends AppCompatActivity {
         options.setCameraId(1);
         options.setOrientationLocked(true);
         options.setCaptureActivity(CaptureAct.class);
-        barLauncher1.launch(options);
+        barLauncher2.launch(options);
     }
 
     public void escritura(String palabra, String nArchivo){
@@ -223,7 +259,18 @@ public class Etapa2 extends AppCompatActivity {
                         Toast.makeText(Etapa2.this, "clave stoke ricibida", Toast.LENGTH_LONG).show();
                         aviso.setText("clave stoke recibida");
                         claveStokeCifrada=lectura("claveStoke.txt");
+                        imgQr= findViewById(R.id.imgQr);
+                        //ok=true;
+                        try {
+                            BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
+                            Bitmap bitmap = barcodeEncoder.encodeBitmap("clave", BarcodeFormat.QR_CODE, 750, 750);
+                            Toast.makeText(Etapa2.this, "palabra clave", Toast.LENGTH_LONG).show();
+                            imgQr.setImageBitmap(bitmap);
+                            aviso.setText("palabra clave");
 
+                        }catch (WriterException e){
+                            e.printStackTrace();
+                        }
                             
                         Log.d("TAG1", "texto -> " + texto);
 
@@ -233,6 +280,36 @@ public class Etapa2 extends AppCompatActivity {
                     }
                 }
             });
+
+
+
+
+    public ActivityResultLauncher<ScanOptions> barLauncher2 = registerForActivityResult(new ScanContract(),
+            result -> {
+
+                if(result.getContents() == null) {
+                    Intent originalIntent = result.getOriginalIntent();
+                    if (originalIntent == null) {
+                        Log.d("MainActivity", "Cancelled scan");
+                        Toast.makeText(Etapa2.this, "Cancelled", Toast.LENGTH_LONG).show();
+                    } else if(originalIntent.hasExtra(Intents.Scan.MISSING_CAMERA_PERMISSION)) {
+                        Log.d("MainActivity", "Cancelled scan due to missing camera permission");
+                        Toast.makeText(Etapa2.this, "Cancelled due to missing camera permission", Toast.LENGTH_LONG).show();
+                    }
+                } else {
+                    mn=(String) result.getContents();
+                    escritura(mn,"claveWifi.txt");
+                    Log.d("TAG1", "clave wifi -> " + mn);
+                    aviso.setText("");
+
+                    //**prueba**
+
+                }
+            });
+
+
+
+
 
 
 
@@ -283,7 +360,7 @@ public class Etapa2 extends AppCompatActivity {
         return str;
     }
 
-    private String descrypt(String result) throws IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+    private String descrypt(String result) throws Exception {
         cipher.init(Cipher.DECRYPT_MODE, llavepriv);
         descryptedByte = cipher.doFinal(Base64.decode(result, Base64.NO_WRAP));
         descryptedString = new String(descryptedByte);

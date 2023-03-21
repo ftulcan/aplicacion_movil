@@ -3,9 +3,22 @@ import numpy as np
 #from matplotlib import pyplot as plt
 #from PIL import Image
 import base64
+#cifrado
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.fernet import Fernet
+
+
+
+
+
 def main (data):
     decode_data = base64.b64decode(data)
     np_data=np.fromstring(decode_data,np.uint8)
+    #np_data=np.frombuffer(decode_data,np.uint8)
     img=cv2.imdecode(np_data,cv2.IMREAD_UNCHANGED)
     x = 0 
     y = 0
@@ -253,3 +266,27 @@ def main2 (data):
 
 
     return ""+palabraF
+
+def main3(data):
+    lista= data.split("######")
+    ks=lista[0]
+    cpr=lista[1]
+    cw=lista[2]
+    cpr="-----BEGIN PRIVATE KEY-----\n"+cpr+"\n-----END PRIVATE KEY-----"
+    cpr=bytes(cpr,'utf-8')
+    plaintext =bytes(ks, 'utf-8')
+    private_key = serialization.load_pem_private_key(
+        cpr,
+        password=None,
+        backend=default_backend()
+    )
+    decrypted = private_key.decrypt(base64.b64decode(plaintext),padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
+
+    stokeKey=str(decrypted,'utf-8')
+    print(stokeKey)
+    key=bytes(stokeKey,'utf-8')
+    print(key)
+    t=Fernet(key)
+    texto=bytes(cw,'utf-8')
+    
+    return ""+str(t.decrypt(texto),'utf-8')

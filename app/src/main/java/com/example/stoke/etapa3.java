@@ -35,6 +35,7 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.arthenica.mobileffmpeg.Config;
@@ -43,9 +44,11 @@ import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -146,7 +149,7 @@ public class etapa3 extends AppCompatActivity {
     private boolean mIsRecording = false;
     private File mVideoFolder;
     private String mVideoFileName;
-
+    private TextView textView;
 
     private static SparseIntArray ORIENTATIONS = new SparseIntArray();
     static {
@@ -175,7 +178,7 @@ public class etapa3 extends AppCompatActivity {
         createVideoFolder();
         createImageFolder();
         mMediaRecorder = new MediaRecorder();
-
+        textView=(TextView) findViewById(R.id.textView3);
 
         mTextureView = (TextureView) findViewById(R.id.textureView);
         //captura=findViewById(R.id.cameraImageButton2);
@@ -217,8 +220,9 @@ public class etapa3 extends AppCompatActivity {
                 handler1.postDelayed(new Runnable() {
                     @Override
                     public void run() {
+                        palabra="";
                         for (int i =60;i>1;i--){
-                            String p ="/storage/emulated/0/Movies/camera2VideoImage/VIDEO_011_input"+i+".png";
+                            String p ="/storage/emulated/0/DCIM/Stoke/VIDEO_011_input"+i+".png";
                             String letra=imageToString(p);
                             PyObject pyo = py.getModule("script");
                             try {
@@ -293,6 +297,14 @@ public class etapa3 extends AppCompatActivity {
                             //Log.i(Config.TAG,str+"    este es de python");
 
                             //palabra = palabra + str;
+                            String c=lectura("simbolos.txt");
+                            String l[]=c.split("-");
+                            String cw=l[0];
+                            String s=l[1];
+                            if (str2.equals(s)){
+                                textView.setText(cw);
+
+                            }
 
                         }catch (Exception e){
                             Log.i(Config.TAG,"ERROR");
@@ -535,7 +547,7 @@ public class etapa3 extends AppCompatActivity {
         }
     }
     private void createVideoFolder() {
-        File movieFile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
+        File movieFile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
         mVideoFolder = new File(movieFile, "Stoke");
         if(!mVideoFolder.exists()) {
             mVideoFolder.mkdirs();
@@ -644,9 +656,9 @@ public class etapa3 extends AppCompatActivity {
 
     public void extract(){
         //VideoCapture cap = new VideoCapture();
-        String fileName = "/storage/emulated/0/Movies/camera2VideoImage/VIDEO_011.mp4";
-        String mpegFileName = "/storage/emulated/0/Movies/camera2VideoImage/VIDEO_011_input%d.png";
-        String aviFileName = "/storage/emulated/0/Movies/camera2VideoImage/VIDEO_011.avi";
+        String fileName = "/storage/emulated/0/DCIM/Stoke/VIDEO_011.mp4";
+        String mpegFileName = "/storage/emulated/0/DCIM/Stoke/VIDEO_011_input%d.png";
+        String aviFileName = "/storage/emulated/0/DCIM/Stoke/VIDEO_011.avi";
 
 
         int rc = FFmpeg.execute("-y -i "+fileName+" "+mpegFileName);
@@ -726,7 +738,7 @@ public class etapa3 extends AppCompatActivity {
             }
         }).start();
     }
-//menu salir
+    //menu salir
     public boolean onCreateOptionsMenu (Menu menu){
         getMenuInflater().inflate(R.menu.menuaccion,menu);
         return true;
@@ -737,7 +749,6 @@ public class etapa3 extends AppCompatActivity {
 
         if(id==R.id.salir){
             /*SharedPreferences preferences = getSharedPreferences("sesion", Context.MODE_PRIVATE);
-
             SharedPreferences.Editor editor= preferences.edit();
             editor.putString("llave1",null);
             editor.putBoolean("llave3",false);
@@ -748,6 +759,24 @@ public class etapa3 extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
 
+    }
+
+    public String lectura(String nArchivo){
+        String clavePublicaCompleta="";
+        try{
+            InputStreamReader archivoPublico = new InputStreamReader(openFileInput(nArchivo));
+            BufferedReader br = new BufferedReader(archivoPublico);
+            String lineaPublica = br.readLine();
+            while(lineaPublica != null){
+                clavePublicaCompleta=clavePublicaCompleta + lineaPublica;
+                lineaPublica=br.readLine();
+            }
+            br.close();
+            archivoPublico.close();
+            Log.d("TAG1", "lectura -> " + clavePublicaCompleta);
+            //variable= clavePublicaCompleta;
+        }catch(IOException e){
+        }return clavePublicaCompleta;
     }
 
 
